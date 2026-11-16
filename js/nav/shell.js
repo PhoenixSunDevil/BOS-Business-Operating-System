@@ -1,7 +1,8 @@
 /* ============================================================
    Aetherion BOS — Shell renderers
    Module placeholder, Contacts directory, Contact Dashboard
-   (action bar + left panel + 14 nested tabs), modals.
+   (action bar + client panel + 14 nested tabs), modals.
+   Client profile layout follows the approved FORTH CRM reference.
    ============================================================ */
 
 const BOS_NESTED_TABS = [
@@ -53,6 +54,8 @@ function bosRenderContactDashboard(contact, tabId) {
   // Contact-scoped tab data, always re-read for THIS contact.
   const data = bosGetTabData(contact.id, tabId);
   const pendingTab = (BOS_NESTED_TABS.find(t => t.id === tabId) || {}).pending;
+  const isFav = BOS_STORE.favorites.indexOf(contact.id) !== -1;
+  const initials = contact.name.split(' ').map(function(w){ return w.charAt(0); }).slice(0,2).join('').toUpperCase();
 
   const actionButtons = [
     ['Edit Contact', 'editContact', 'bosOpenModal(\'edit-contact\')'],
@@ -85,6 +88,18 @@ function bosRenderContactDashboard(contact, tabId) {
     '</div>' +
     '<div class="contact-layout">' +
       '<aside class="client-panel">' +
+        '<div class="client-head">' +
+          '<div class="client-avatar" aria-hidden="true">' + initials + '</div>' +
+          '<div class="client-head-info">' +
+            '<div class="client-name">' + contact.name + '</div>' +
+            '<div class="client-sub">' + contact.customerId + ' · ' + contact.type + '</div>' +
+          '</div>' +
+          (bosCanAccessAction('favorites')
+            ? '<button class="fav-star' + (isFav ? ' active' : '') + '" type="button" ' +
+              'title="' + (isFav ? 'Remove from favorites' : 'Add to favorites') + '" ' +
+              'onclick="bosToggleFavorite(\'' + contact.id + '\')">' + (isFav ? '★' : '☆') + '</button>'
+            : '') +
+        '</div>' +
         '<h3>Client Information</h3>' +
         bosKvRow('Name', contact.name) +
         bosKvRow('Customer ID', contact.customerId) +
@@ -96,6 +111,10 @@ function bosRenderContactDashboard(contact, tabId) {
           bosKvRow('Date Enrolled', contact.enrolled) +
           bosKvRow('Plan', '— development pending') +
           bosKvRow('Debt Amount', '—') +
+          bosKvRow('Enrollment Status', 'Active') +
+        '</div>' +
+        '<div class="alerts-card"><h4>Alerts</h4>' +
+          '<p class="no-alerts">No alerts on file for this client.</p>' +
         '</div>' +
       '</aside>' +
       '<section>' +
@@ -105,6 +124,13 @@ function bosRenderContactDashboard(contact, tabId) {
     '</div>';
 
   bosRenderNestedTab(contact, tabId, data, pendingTab);
+}
+
+function bosToggleFavorite(contactId) {
+  const i = BOS_STORE.favorites.indexOf(contactId);
+  if (i === -1) BOS_STORE.favorites.push(contactId);
+  else BOS_STORE.favorites.splice(i, 1);
+  bosRender(); // re-render current view with updated favorite state
 }
 
 function bosRenderNestedTab(contact, tabId, data, pendingTab) {
