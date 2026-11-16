@@ -3,36 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aetherion BOS — Business Operating System</title>
+<title>Aetherion BOS — Sign in</title>
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="theme-light">
-  <header id="bos-header">
-    <div class="bos-brand">
-      <span class="bos-logo">◈</span>
-      <span class="bos-name">AETHERION BOS</span>
+  <main class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="bos-logo">◈</span>
+        <span class="bos-name">AETHERION BOS</span>
+      </div>
+      <h1>Sign in</h1>
+      <p class="login-sub">Business Operating System — access is granted per user.</p>
+      <form onsubmit="return bosDoLogin(event)">
+        <label>Username<input id="login-user" type="text" autocomplete="username" required></label>
+        <label>Password<input id="login-pass" type="password" autocomplete="current-password" required></label>
+        <button type="submit" class="btn" style="width:100%;justify-content:center">Sign in</button>
+        <p id="login-error" class="login-error" hidden>Invalid username or password.</p>
+      </form>
+      <p class="login-hint">First run: admin / admin1234 — change it from Admin after signing in.</p>
     </div>
-    <nav id="main-nav" role="navigation" aria-label="Main CRM modules"></nav>
-    <div class="bos-tools">
-      <button id="storage-badge" type="button" class="storage-badge" onclick="bosOpenStorageModal()" title="Storage status — click to configure Google Apps Script storage">Storage: local session</button>
-      <input id="global-search" type="search" placeholder="Search…" aria-label="Global search">
-      <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
-      <div class="bos-user" id="user-badge" title="Signed-in user">…</div>
-    </div>
-  </header>
-
-  <main id="workspace">
-    <div id="breadcrumb" class="breadcrumb" aria-label="Navigation path"></div>
-    <section id="module-host" class="module-host" aria-live="polite"></section>
   </main>
 
   <script src="js/modules/registry.js"></script>
+  <script src="js/modules/auth.js"></script>
   <script src="js/modules/permissions.js"></script>
   <script src="js/data/store.js"></script>
   <script src="js/data/persistence.js"></script>
   <script src="js/nav/router.js"></script>
   <script src="js/nav/shell.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/nav/login.js"></script>
 </body>
 </html>
