@@ -2,8 +2,8 @@
    Aetherion BOS — Shell renderers
    Module placeholder, Contacts directory, Contact Dashboard
    (action bar + client panel + 14 nested tabs), WORKING modals.
-   Every contact action and every nested tab is functional:
-   records can be added and removed, scoped to the selected contact.
+   Record storage lives in js/data/store.js; persistence to
+   Google Apps Script lives in js/data/persistence.js.
    ============================================================ */
 
 const BOS_NESTED_TABS = [
@@ -40,6 +40,14 @@ const BOS_TAB_DEFS = {
   debts:      { label: 'Debts',       fields: [['creditor','Creditor'],['amount','Amount'],['status','Status']], cols: ['ts','creditor','amount','status'] },
   lenders:    { label: 'Lenders',     fields: [['name','Lender'],['type','Type'],['contact','Contact info']], cols: ['ts','name','type','contact'] },
   loans:      { label: 'Loans',       fields: [['lender','Lender'],['balance','Balance'],['status','Status']], cols: ['ts','lender','balance','status'] }
+};
+
+/* Extra record lists reachable from the action bar (kept in the
+   contact's tabsByContact store so they stay contact-scoped) */
+const BOS_ACTION_LIST_DEFS = {
+  orders:      { label: 'Order',       fields: [['name','Order name'],['amount','Amount'],['status','Status']], cols: ['ts','name','amount','status'] },
+  creditors:   { label: 'Creditor',    fields: [['name','Creditor name'],['type','Type'],['amount','Amount']], cols: ['ts','name','type','amount'] },
+  settlements: { label: 'Settlement',  fields: [['name','Settlement'],['amount','Amount'],['status','Status']], cols: ['ts','name','amount','status'] }
 };
 
 /* ---------- Module placeholder (main modules not yet built) ---------- */
@@ -139,7 +147,7 @@ function bosRenderContactDashboard(contact, tabId) {
             ? '<p class="no-alerts">No alerts on file for this client.</p>'
             : alerts.map(function(a) {
                 return '<p class="alert-item"><strong>' + a.level + '</strong> — ' + a.text +
-                  ' <button class="link-btn" onclick="bosDismissAlert(\'' + contact.id + '\', ' + BOS_STORE.alertsByContact[contact.id].indexOf(a) + ')">dismiss</button></p>';
+                  ' <button class="link-btn" onclick="bosDismissAlert(\'' + contact.id + '\', ' + alerts.indexOf(a) + ')">dismiss</button></p>';
               }).join('')) +
         '</div>' +
       '</aside>' +
@@ -194,9 +202,7 @@ function bosDeleteRecord(contactId, tabId, index) {
 
 /* ---------- Generic add-record form (any tab) ---------- */
 function bosOpenAddRecord(contactId, tabId) {
-  const def = BOS_TAB_DEFS[tabId] ||
-    /* action-bar destinations that are record lists, not tabs */
-    BOS_ACTION_LIST_DEFS[tabId] ||
+  const def = BOS_TAB_DEFS[tabId] || BOS_ACTION_LIST_DEFS[tabId] ||
     { label: tabId, fields: [['name','Name'],['amount','Amount'],['status','Status']], cols: ['ts','name','amount','status'] };
   const inputs = def.fields.map(function(f) {
     return '<label>' + f[1] + '<input id="bos-fld-' + f[0] + '" type="text"></label>';
@@ -217,20 +223,12 @@ function bosSaveRecord(e, contactId, tabId) {
     const el = document.getElementById('bos-fld-' + f[0]);
     record[f[0]] = el ? el.value : '';
   });
+  record.author = bosCurrentUser().name;
   bosAddRecord(contactId, tabId, record);
   bosLogHistory(contactId, 'Added a record to ' + def.label);
   bosCloseModal();
   bosRender();
-  if (location.hash.indexOf('/contacts/') === -1 || !bosGetContact(contactId)) return;
 }
-
-/* Extra record lists reachable from the action bar (kept in the
-   contact's tabsByContact store so they stay contact-scoped) */
-const BOS_ACTION_LIST_DEFS = {
-  orders:      { label: 'Order',       fields: [['name','Order name'],['amount','Amount'],['status','Status']], cols: ['ts','name','amount','status'] },
-  creditors:   { label: 'Creditor',    fields: [['name','Creditor name'],['type','Type'],['amount','Amount']], cols: ['ts','name','type','amount'] },
-  settlements: { label: 'Settlement',  fields: [['name','Settlement'],['amount','Amount'],['status','Status']], cols: ['ts','name','amount','status'] }
-};
 
 /* ---------- Edit Contact ---------- */
 function bosOpenEditContact(contactId) {
@@ -251,13 +249,14 @@ function bosOpenEditContact(contactId) {
 }
 function bosSaveEditContact(e, contactId) {
   e.preventDefault();
-  const c = bosGetContact(contactId);
+  const c = bosUpdateContact(contactId, {
+    name: document.getElementById('ec-name').value || undefined,
+    email: document.getElementById('ec-email').value,
+    phone: document.getElementById('ec-phone').value,
+    type: document.getElementById('ec-type').value,
+    status: document.getElementById('ec-status').value
+  });
   if (!c) return;
-  c.name = document.getElementById('ec-name').value || c.name;
-  c.email = document.getElementById('ec-email').value;
-  c.phone = document.getElementById('ec-phone').value;
-  c.type = document.getElementById('ec-type').value;
-  c.status = document.getElementById('ec-status').value;
   bosLogHistory(contactId, 'Contact record edited');
   bosCloseModal();
   bosRender();
@@ -315,10 +314,12 @@ function bosOpenEnrollment(contactId) {
 function bosSaveEnrollment(e, contactId) {
   e.preventDefault();
   const c = bosGetContact(contactId);
-  c.plan = document.getElementById('en-plan').value || '—';
   const d = document.getElementById('en-date').value;
-  if (d) c.enrolled = d;
-  c.status = document.getElementById('en-status').value;
+  bosUpdateContact(contactId, {
+    plan: document.getElementById('en-plan').value || '—',
+    enrolled: d || c.enrolled,
+    status: document.getElementById('en-status').value
+  });
   bosLogHistory(contactId, 'Enrollment updated (plan: ' + c.plan + ', status: ' + c.status + ')');
   bosCloseModal();
   bosRender();
@@ -341,10 +342,6 @@ function bosSaveAlert(e, contactId) {
   bosCloseModal();
   bosRender();
 }
-function bosDismissAlert(contactId, index) {
-  const list = BOS_STORE.alertsByContact[contactId];
-  if (list) { list.splice(index, 1); bosLogHistory(contactId, 'Alert dismissed'); bosRender(); }
-}
 
 /* ---------- Helpers ---------- */
 function bosSumAmounts(contactId, tabId, key) {
@@ -363,12 +360,6 @@ function bosFavoritesAction(value, contactId) {
       BOS_STORE.favorites.map(function(id) { const c = bosGetContact(id); return c ? c.name + ' (' + id + ')' : id; }).join('<br>')) +
     '</p><div class="modal-actions"><button class="btn secondary" onclick="bosCloseModal()">Close</button></div>'); }
 }
-function bosToggleFavorite(contactId) {
-  const i = BOS_STORE.favorites.indexOf(contactId);
-  if (i === -1) BOS_STORE.favorites.push(contactId);
-  else BOS_STORE.favorites.splice(i, 1);
-  bosRender();
-}
 
 /* ---------- Modal core ---------- */
 function bosShowModal(title, bodyHtml) {
@@ -382,7 +373,6 @@ function bosShowModal(title, bodyHtml) {
   backdrop.innerHTML = '<div class="modal"><h3>' + title + '</h3>' + bodyHtml + '</div>';
   backdrop.classList.add('open');
 }
-function bosOpenModal(id) { bosShowModal(id, '<div class="modal-actions"><button class="btn secondary" onclick="bosCloseModal()">Close</button></div>'); }
 function bosCloseModal() {
   const m = document.getElementById('bos-modal');
   if (m) m.classList.remove('open');
