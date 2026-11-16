@@ -1,8 +1,10 @@
 /* ============================================================
-   Aetherion BOS — Data store (contact-scoped, session-local)
+   Aetherion BOS — Data store (contact-scoped)
    No real customer data. Sample contacts are structural placeholders.
    Financial tabs start EMPTY; records are only ever created through
    the UI by an authorized user — never fabricated.
+   Every mutation calls bosAfterMutation() (persistence adapter)
+   when the app is wired for Google Apps Script storage.
    ============================================================ */
 
 const BOS_STORE = {
@@ -34,6 +36,12 @@ function bosNow() {
   return new Date().toISOString().slice(0, 16).replace('T', ' ');
 }
 
+/* Persist hook — defined by persistence.js; safe no-op if absent
+   (e.g., in the test harness which runs its own script set). */
+function bosAfterMutation() {
+  if (typeof bosPersist === 'function') bosPersist();
+}
+
 function bosGetContact(contactId) {
   return BOS_STORE.contacts.find(c => c.id === contactId) || null;
 }
@@ -52,6 +60,7 @@ function bosAddRecord(contactId, tabId, record) {
   if (!Array.isArray(by[tabId])) by[tabId] = [];
   record.ts = bosNow();
   by[tabId].unshift(record);
+  bosAfterMutation();
   return record;
 }
 
@@ -59,6 +68,7 @@ function bosRemoveRecord(contactId, tabId, index) {
   const arr = BOS_STORE.tabsByContact[contactId] && BOS_STORE.tabsByContact[contactId][tabId];
   if (!Array.isArray(arr) || arr[index] === undefined) return false;
   arr.splice(index, 1);
+  bosAfterMutation();
   return true;
 }
 
@@ -67,6 +77,16 @@ function bosLogHistory(contactId, entry) {
   const by = BOS_STORE.tabsByContact[contactId];
   if (!by) return;
   by.history.unshift({ ts: bosNow(), actor: bosCurrentUser().name, entry: entry });
+  bosAfterMutation();
+}
+
+/* Contact record edits (Edit Contact / Enrollment forms) */
+function bosUpdateContact(contactId, changes) {
+  const c = bosGetContact(contactId);
+  if (!c) return null;
+  Object.keys(changes).forEach(function(k) { c[k] = changes[k]; });
+  bosAfterMutation();
+  return c;
 }
 
 /* Budget Analysis (per contact) */
@@ -77,6 +97,7 @@ function bosGetBudget(contactId) {
 function bosSetBudget(contactId, budget) {
   const by = BOS_STORE.tabsByContact[contactId];
   if (by) by.budget = budget;
+  bosAfterMutation();
 }
 
 /* Alerts (per contact) */
@@ -86,6 +107,19 @@ function bosGetAlerts(contactId) {
 function bosAddAlert(contactId, level, text) {
   if (!BOS_STORE.alertsByContact[contactId]) BOS_STORE.alertsByContact[contactId] = [];
   BOS_STORE.alertsByContact[contactId].unshift({ ts: bosNow(), level: level, text: text });
+  bosAfterMutation();
+}
+function bosDismissAlert(contactId, index) {
+  const list = BOS_STORE.alertsByContact[contactId];
+  if (list) { list.splice(index, 1); bosAfterMutation(); }
+}
+
+/* Favorites */
+function bosToggleFavorite(contactId) {
+  const i = BOS_STORE.favorites.indexOf(contactId);
+  if (i === -1) BOS_STORE.favorites.push(contactId);
+  else BOS_STORE.favorites.splice(i, 1);
+  bosAfterMutation();
 }
 
 /* Clone — creates a new contact with a fresh, EMPTY record set.
@@ -113,5 +147,6 @@ function bosCloneContact(contactId) {
     events: [], tasks: [], creditcard: [], bankaccount: [], debts: [], lenders: [], loans: []
   };
   BOS_STORE.alertsByContact[id] = [];
+  bosAfterMutation();
   return copy;
 }
