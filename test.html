@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Aetherion BOS — Acceptance Tests</title>
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="theme-light">
+  <main id="workspace">
+    <h1>Aetherion BOS — Module Test Harness</h1>
+    <p>Super Admin only. Results below are actual runtime outcomes of the acceptance tests.</p>
+    <section id="test-results">Running…</section>
+  </main>
+
+  <script src="js/modules/registry.js"></script>
+  <script src="js/modules/permissions.js"></script>
+  <script src="js/data/store.js"></script>
+  <script src="js/nav/router.js"></script>
+  <script src="js/nav/shell.js"></script>
+  <script src="js/tests/acceptance.js"></script>
+
+  <!-- The test harness drives bosRender directly; a minimal hidden
+       render host and nav are provided so DOM assertions work. -->
+  <header id="bos-header" style="display:none"><nav id="main-nav"></nav></header>
+  <div id="breadcrumb" class="breadcrumb" style="display:none"></div>
+  <div id="module-host" style="display:none"></div>
+</body>
+</html>
