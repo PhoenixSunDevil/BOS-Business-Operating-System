@@ -1,0 +1,58 @@
+/* ============================================================
+   Aetherion BOS — Theme tokens (light & dark)
+   Dark mode is a first-class theme. All components use these
+   CSS custom properties; no component hard-codes colors.
+   ============================================================ */
+
+:root, body.theme-light {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --border: #d7dae0;
+  --text: #1f2430;
+  --text-2: #565e6d;
+  --accent: #5b4bd6;
+  --accent-2: #8f0094;
+  --accent-text: #ffffff;
+  --nav-bg: #221f2e;
+  --nav-text: #d8d5e3;
+  --nav-active: #5b4bd6;
+  --ok: #1e8e5a;
+  --warn: #b7791f;
+  --danger: #c0392b;
+  --shadow: 0 1px 3px rgba(15, 18, 25, .08), 0 8px 24px rgba(15, 18, 25, .05);
+}
+
+body.theme-dark {
+  --bg: #14161d;
+  --surface: #1d202a;
+  --surface-2: #262a36;
+  --border: #333846;
+  --text: #e8eaf0;
+  --text-2: #a6adbb;
+  --accent: #7c6ef2;
+  --accent-2: #b44ab8;
+  --accent-text: #ffffff;
+  --nav-bg: #101219;
+  --nav-text: #c4c8d4;
+  --nav-active: #7c6ef2;
+  --ok: #2eb872;
+  --warn: #e0a83c;
+  --danger: #e05545;
+  --shadow: 0 1px 3px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .25);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background .2s ease, color .2s ease;
+}
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
