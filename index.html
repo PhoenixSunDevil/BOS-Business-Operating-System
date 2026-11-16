@@ -15,6 +15,7 @@
     </div>
     <nav id="main-nav" role="navigation" aria-label="Main CRM modules"></nav>
     <div class="bos-tools">
+      <button id="storage-badge" type="button" class="storage-badge" onclick="bosOpenStorageModal()" title="Storage status — click to configure Google Apps Script storage">Storage: local session</button>
       <input id="global-search" type="search" placeholder="Search…" aria-label="Global search">
       <button id="theme-toggle" type="button" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
       <div class="bos-user" id="user-badge" title="Signed-in user">…</div>
@@ -29,6 +30,7 @@
   <script src="js/modules/registry.js"></script>
   <script src="js/modules/permissions.js"></script>
   <script src="js/data/store.js"></script>
+  <script src="js/data/persistence.js"></script>
   <script src="js/nav/router.js"></script>
   <script src="js/nav/shell.js"></script>
   <script src="js/app.js"></script>
