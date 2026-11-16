@@ -2,7 +2,8 @@
    Aetherion BOS — Router
    Hash-based routing. EVERY navigation request — click, hash
    change, or manual URL edit — passes through bosRoute(), which
-   re-checks permissions. Unauthorized destinations render
+   re-checks permissions. Unauthenticated visitors are redirected
+   to the login page. Unauthorized destinations render
    "Access denied", never the restricted workspace.
    ============================================================ */
 
@@ -19,14 +20,19 @@ function bosNavigate(module, contactId, tab) {
   let hash = '#/' + module;
   if (contactId) hash += '/' + encodeURIComponent(contactId);
   if (tab) hash += '/' + tab;
-  location.hash = hash; // hashchange → bosRender()
+  location.hash = hash;
 }
 
 window.addEventListener('hashchange', bosRender);
 
 function bosRender() {
+  // ---- auth gate: not signed in → login page ----
+  if (!bosIsLoggedIn()) {
+    window.location.href = 'index.html';
+    return;
+  }
+
   const v = bosRoute();
-  const nav = document.getElementById('main-nav');
   const host = document.getElementById('module-host');
   const crumb = document.getElementById('breadcrumb');
 
@@ -34,8 +40,8 @@ function bosRender() {
   if (!bosCanAccessModule(v.module)) {
     host.innerHTML =
       '<div class="access-denied"><h2>Access denied</h2>' +
-      '<p>Your role does not have access to the requested workspace (' + v.module + ').</p></div>';
-    bosSetActiveNav(v.module); // still mark attempted module, but no workspace
+      '<p>Your account does not have access to the requested workspace (' + v.module + ').</p></div>';
+    bosSetActiveNav(v.module);
     return;
   }
 
