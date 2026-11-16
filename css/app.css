@@ -80,6 +80,13 @@
 .data-table th { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-2); }
 .data-table tbody tr:hover { background: var(--surface-2); }
 
+.link-btn {
+  background: none; border: none; padding: 0;
+  color: var(--accent); cursor: pointer; font-size: 12px;
+  text-decoration: underline;
+}
+.link-btn:hover { filter: brightness(1.2); }
+
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--accent); color: var(--accent-text);
@@ -149,6 +156,7 @@
 .alerts-card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: 8px; padding: 12px; margin-top: 12px; }
 .alerts-card h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-2); }
 .alerts-card .no-alerts { margin: 0; font-size: 12.5px; color: var(--text-2); }
+.alerts-card .alert-item { margin: 4px 0; font-size: 12.5px; }
 
 /* Nested tabs */
 .nested-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 14px; }
@@ -162,6 +170,10 @@
 .nested-tab.disabled { opacity: .45; cursor: not-allowed; }
 .nested-workspace { min-height: 200px; }
 
+/* Tab workspace header */
+.tab-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.tab-header .tab-count { color: var(--text-2); font-weight: 400; font-size: 13px; }
+
 /* Modals */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(10, 12, 18, .55);
@@ -172,13 +184,17 @@
   background: var(--surface); color: var(--text);
   border: 1px solid var(--border); border-radius: 10px;
   box-shadow: var(--shadow); max-width: 460px; width: 92%; padding: 20px;
+  max-height: 85vh; overflow-y: auto;
 }
 .modal h3 { margin: 0 0 12px; }
 .modal .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .modal input, .modal select, .modal textarea {
   width: 100%; padding: 8px 10px; border-radius: 6px;
   border: 1px solid var(--border); background: var(--bg); margin-bottom: 10px;
+  font: inherit; color: inherit;
 }
+.modal label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 2px; }
+.modal label input, .modal label select { margin-top: 4px; }
 
 /* Access denied */
 .access-denied { padding: 40px 16px; text-align: center; color: var(--danger); }
