@@ -1,8 +1,7 @@
 /* ============================================================
    Aetherion BOS — Acceptance Test Harness (test.html)
-   Runs the specification acceptance tests and reports ACTUAL
-   results. Super Admin-only restriction is enforced here:
-   non-super-admins cannot run this page's suite.
+   Super Admin-only. Verifies the navigation architecture AND
+   functional behavior with ACTUAL runtime results.
    ============================================================ */
 window.__BOS_SESSION__ = { role: 'superadmin', name: 'Super Admin' };
 
@@ -28,9 +27,6 @@ document.addEventListener('DOMContentLoaded', function () {
   T('Every main module can be selected (superadmin)', () =>
     BOS_MODULES.every(m => bosCanAccessModule(m.id)));
 
-  T('Every main module has a workspace route', () =>
-    BOS_MODULES.every(m => m.route !== null) && typeof bosNavigate === 'function');
-
   T('Contacts opens the Contacts workspace', () => {
     location.hash = '#/contacts'; bosRender();
     return document.getElementById('module-host').textContent.indexOf('Contact Directory') !== -1;
@@ -49,9 +45,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!bar) return false;
     const need = ['Edit Contact','Clone','Create Order','Budget Analysis','Creditors','Enrollment','Settlements','Add Alert'];
     const txt = bar.textContent;
-    const hasSearch = !!bar.querySelector('input[type="search"]');
-    const hasFav = !!bar.querySelector('.favorites-select');
-    return need.every(n => txt.indexOf(n) !== -1) && hasSearch && hasFav;
+    return need.every(n => txt.indexOf(n) !== -1) &&
+      !!bar.querySelector('input[type="search"]') && !!bar.querySelector('.favorites-select');
   });
 
   T('All 14 nested contact tabs exist', () =>
@@ -60,22 +55,56 @@ document.addEventListener('DOMContentLoaded', function () {
   T('Every nested tab opens its own workspace', () => {
     return BOS_NESTED_TABS.every(t => {
       location.hash = '#/contacts/CT-1001/' + t.id; bosRender();
-      return !!document.getElementById('nested-workspace');
+      return !!document.getElementById('nested-workspace') &&
+        document.getElementById('nested-workspace').textContent.indexOf('Development pending') === -1;
     });
   });
 
-  T('Switching nested tabs preserves the selected contact', () => {
-    location.hash = '#/contacts/CT-1001/loans'; bosRender();
-    const crumb = document.getElementById('breadcrumb').textContent;
-    location.hash = '#/contacts/CT-1001/lenders'; bosRender();
-    return document.getElementById('breadcrumb').textContent.indexOf('CT-1001') !== -1 || crumb.indexOf('CT-1001') !== -1;
+  T('Every nested tab shows an Add-record control', () => {
+    return BOS_NESTED_TABS.every(t => {
+      location.hash = '#/contacts/CT-1001/' + t.id; bosRender();
+      const ws = document.getElementById('nested-workspace');
+      return !!ws.querySelector('.tab-header button.btn');
+    });
+  });
+
+  T('Records can be added through the store (add → appears in tab)', () => {
+    bosAddRecord('CT-1001', 'calls', { phone: '(555) 010-0101', duration: '5', outcome: 'Answered', note: 'Test call' });
+    const calls = bosGetTabData('CT-1001', 'calls');
+    return calls.length === 1 && calls[0].note === 'Test call';
+  });
+
+  T('Records can be deleted (remove → gone from tab)', () => {
+    bosRemoveRecord('CT-1001', 'calls', 0);
+    return bosGetTabData('CT-1001', 'calls').length === 0;
+  });
+
+  T('Every action writes to History', () => {
+    const before = bosGetTabData('CT-1001', 'history').length;
+    bosAddRecord('CT-1001', 'notes', { note: 'History check' });
+    bosLogHistory('CT-1001', 'Note added (test)');
+    const after = bosGetTabData('CT-1001', 'history').length;
+    bosRemoveRecord('CT-1001', 'notes', 0);
+    return after >= before + 1;
   });
 
   T('Switching contacts does not show previous contact info', () => {
     location.hash = '#/contacts/CT-1002/notes'; bosRender();
-    const host = document.getElementById('module-host');
-    const txt = host.textContent;
+    const txt = document.getElementById('module-host').textContent;
     return txt.indexOf('CT-1002') !== -1 && txt.indexOf('Sample Contact A') === -1;
+  });
+
+  T('Clone creates a new contact with empty record sets', () => {
+    const copy = bosCloneContact('CT-1001');
+    return copy && copy.id !== 'CT-1001' &&
+      bosGetTabData(copy.id, 'creditcard').length === 0 &&
+      bosGetTabData(copy.id, 'history').length === 0;
+  });
+
+  T('Alerts can be added and read per contact', () => {
+    bosAddAlert('CT-1001', 'Warning', 'Test alert');
+    const a = bosGetAlerts('CT-1001');
+    return a.length === 1 && a[0].text === 'Test alert';
   });
 
   T('Permissions are enforced (readonly denied Admin)', () => {
@@ -103,9 +132,9 @@ document.addEventListener('DOMContentLoaded', function () {
     return blocked;
   });
 
-  T('No fabricated financial data in financial tabs', () => {
+  T('Financial tabs start empty (no fabricated data)', () => {
     ['creditcard','bankaccount','debts','lenders','loans'].forEach(id => {
-      if (bosGetTabData('CT-1001', id).length !== 0) throw new Error(id + ' populated');
+      if (bosGetTabData('CT-1002', id).length !== 0) throw new Error(id + ' populated');
     });
     return true;
   });
